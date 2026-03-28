@@ -1,5 +1,3 @@
-# pink-pong-challenge
-A responsive, high-performance Table Tennis game built with Vanilla JavaScript and HTML5 Canvas, featuring dynamic AI difficulty and neon- boutique aesthetics.
 # Pink Pong Challenge 🏓
 
 A modern, browser-based take on the classic arcade game. This project focuses on smooth physics, responsive input handling, and a polished "Neon Boutique" visual style.
