@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pink Pong Challenge</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #134e4a 0%, #4c1d95 50%, #db2777 100%);
+      --accent-pink: #ec4899;
+      --accent-teal: #0d9488;
+      --accent-purple: #8b5cf6;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-gradient);
+      padding: 20px;
+      color: white;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin: 0 0 20px 0;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    h1 i { color: var(--accent-pink); font-style: italic; }
+
+    .controls-panel {
+      width: 100%;
+      max-width: 800px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 25px;
+      border-radius: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      color: #1e293b;
+    }
+
+    .canvas-border {
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-pink));
+      padding: 8px;
+      border-radius: 20px;
+    }
+
+    canvas {
+      background: #fff9fc;
+      display: block;
+      border-radius: 12px;
+      background-image: radial-gradient(#db2777 0.5px, transparent 0.5px);
+      background-size: 30px 30px;
+    }
+
+    .score-footer {
+      width: 100%;
+      max-width: 800px;
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    button {
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple));
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .key-hint { font-size: 14px; margin-top: 10px; opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <h1>Pink Pong <i>Challenge</i></h1>
+
+  <div class="controls-panel">
+    <div style="display: flex; gap: 15px; align-items: center;">
+      <span><b>Difficulty:</b></span>
+      <label><input type="radio" name="diff" value="easy"> Easy</label>
+      <label><input type="radio" name="diff" value="medium" checked> Med</label>
+      <label><input type="radio" name="diff" value="hard"> Hard</label>
+    </div>
+    <button id="startBtn">START MATCH</button>
+  </div>
+
+  <div class="canvas-border">
+    <canvas id="pong" width="800" height="450"></canvas>
+  </div>
+
+  <div class="score-footer">
+    <div style="color:var(--accent-pink)">YOU: <span id="pScore">0</span></div>
+    <div style="color:var(--accent-purple)">COM: <span id="cScore">0</span></div>
+  </div>
+
+  <p class="key-hint">Use <b>↑ Up</b> and <b>↓ Down</b> Arrow Keys to move</p>
+
+  <script>
+    const canvas = document.getElementById('pong');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const pScoreEl = document.getElementById('pScore');
+    const cScoreEl = document.getElementById('cScore');
+
+    let pScore = 0, cScore = 0, running = false, ballSpeed = 6;
+
+    const paddle = { w: 12, h: 95, x: 10, y: canvas.height/2 - 47, speed: 10 };
+    const comp = { w: 12, h: 95, x: canvas.width - 22, y: canvas.height/2 - 47 };
+    const ball = { x: canvas.width/2, y: canvas.height/2, r: 10, vx: 6, vy: 6 };
+
+    // Simple Keyboard Tracking
+    const keys = {};
+    window.addEventListener('keydown', e => { keys[e.code] = true; });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    function resetBall() {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ballSpeed = 6;
+      ball.vx = (Math.random() > 0.5 ? 1 : -1) * ballSpeed;
+      ball.vy = (Math.random() * 6 - 3);
+    }
+
+    function update() {
+      if(!running) return;
+
+      // Move Player
+      if (keys['ArrowUp'] && paddle.y > 0) paddle.y -= paddle.speed;
+      if (keys['ArrowDown'] && paddle.y < canvas.height - paddle.h) paddle.y += paddle.speed;
+
+      // Ball Physics
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if(ball.y + ball.r > canvas.height || ball.y - ball.r < 0) ball.vy = -ball.vy;
+
+      // AI Logic
+      const diff = document.querySelector('input[name="diff"]:checked').value;
+      let aiReaction = (diff === 'easy') ? 0.05 : (diff === 'medium') ? 0.11 : 0.18;
+      comp.y += (ball.y - (comp.y + comp.h/2)) * aiReaction;
+
+      // Paddle Collision
+      let p = (ball.x < canvas.width/2) ? paddle : comp;
+      if(ball.x + ball.r > p.x && ball.x - ball.r < p.x + p.w &&
+         ball.y + ball.r > p.y && ball.y - ball.r < p.y + p.h) {
+        
+        let pt = (ball.y - (p.y + p.h/2)) / (p.h/2);
+        let angle = (Math.PI/4) * pt;
+        let dir = (ball.x < canvas.width/2) ? 1 : -1;
+        
+        ballSpeed += 0.5;
+        ball.vx = dir * ballSpeed * Math.cos(angle);
+        ball.vy = ballSpeed * Math.sin(angle);
+      }
+
+      if(ball.x < 0) { cScore++; resetBall(); }
+      if(ball.x > canvas.width) { pScore++; resetBall(); }
+      
+      pScoreEl.textContent = pScore;
+      cScoreEl.textContent = cScore;
+    }
+
+    function draw() {
+      ctx.fillStyle = '#fff9fc';
+      ctx.fillRect(0,0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(0,0,0,0.1)";
+      ctx.setLineDash([10, 10]);
+      ctx.strokeRect(canvas.width/2, 0, 0, canvas.height);
+      ctx.fillStyle = '#ec4899'; // Player Pink
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+      ctx.fillStyle = '#8b5cf6'; // Comp Purple
+      ctx.fillRect(comp.x, comp.y, comp.w, comp.h);
+      ctx.fillStyle = '#0d9488'; // Ball Teal
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+    }
+
+    startBtn.addEventListener('click', () => {
+      pScore = 0; cScore = 0; running = true; resetBall();
+      startBtn.textContent = "RESTART MATCH";
+    });
+
+    function loop() { update(); draw(); requestAnimationFrame(loop); }
+    loop();
+  </script>
+</body>
+</html>
